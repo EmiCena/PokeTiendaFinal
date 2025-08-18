@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Admin &middot; Productos{% endblock %}
+{% block content %}
+<h1>Admin &middot; Productos</h1>
+<form method="post" class="admin-form" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input name="nombre" placeholder="Nombre" required>
+  <input name="tipo" placeholder="Tipo (fuego/agua/...)" required>
+  <label>Categor&iacute;a
+    <select name="categoria">
+      <option value="general">General/Merch</option>
+      <option value="tcg">TCG</option>
+    </select>
+  </label>
+  <input name="precio" type="number" step="0.01" placeholder="Precio base" required>
+  <input name="stock" type="number" placeholder="Stock" required>
+  <input name="image_url" placeholder="URL de imagen">
+  <label>Imagen (archivo) <input type="file" name="image_file" accept=".png,.jpg,.jpeg,.gif,.webp"></label>
+  <textarea name="descripcion" placeholder="Descripción"></textarea>
+
+  <h3>Metadatos TCG (opcional)</h3>
+  <input name="expansion" placeholder="Expansi&oacute;n">
+  <input name="rarity" placeholder="Rareza">
+  <input name="language" placeholder="Idioma (EN, ES...)">
+  <input name="condition" placeholder="Condici&oacute;n (NM, LP...)">
+  <input name="card_number" placeholder="N&ordm; de carta">
+
+  <button class="btn primary">Crear</button>
+</form>
+
+<h3>Listado</h3>
+<div class="grid">
+  {% for p in products %}
+  <div class="card">
+    <img src="{{ p.image_url }}" alt="{{ p.nombre }}">
+    <div class="title">{{ p.nombre }}</div>
+    <div class="muted">{{ p.tipo|capitalize }} &middot; {{ p.categoria|capitalize }} &middot; Stock {{ p.stock }}</div>
+    <div class="muted">
+      {% if p.categoria == 'tcg' %}
+        {% if p.expansion %} {{ p.expansion }} ·{% endif %}
+        {% if p.rarity %} {{ p.rarity }} ·{% endif %}
+        {% if p.language %} {{ p.language }} ·{% endif %}
+        {% if p.condition %} {{ p.condition }} ·{% endif %}
+        {% if p.card_number %} N&ordm; {{ p.card_number }}{% endif %}
+      {% endif %}
+    </div>
+    <div class="price">$ {{ "%.2f"|format(p.precio_base) }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

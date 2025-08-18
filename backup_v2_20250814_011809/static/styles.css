@@ -1,0 +1,25 @@
+:root{--bg:#0b1020;--card:#121a33;--muted:#9fb0e3;--text:#e8efff;--accent:#ffd400;}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.topbar{background:#0e1630;border-bottom:1px solid #1a2450}.topbar .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.brand{color:#fff;text-decoration:none;font-weight:800}
+.search{display:flex;gap:6px}.search input{padding:8px;border-radius:8px;border:1px solid #2a3670;background:#0f1735;color:#cfe3ff}
+nav a{color:#cfe3ff;margin-left:10px;text-decoration:none}
+.flash{margin:12px 0}.flash-item{padding:10px;border-radius:8px;margin-bottom:8px}.flash-item.success{background:#0f2d1f}.flash-item.info{background:#0f1735}.flash-item.warning{background:#3a2f0f}.flash-item.danger{background:#3a2030}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid #1a2450;border-radius:12px;padding:12px;color:#e8efff;text-decoration:none}
+.card img{width:100%;height:180px;object-fit:contain;background:#0f1730;border-radius:10px}
+.card .title{font-weight:700;margin:6px 0}
+.card .price{color:var(--accent);font-weight:800}
+.product{display:grid;grid-template-columns:320px 1fr;gap:16px}
+.product .photo{width:100%;height:320px;object-fit:contain;background:#0f1730;border-radius:12px}
+.muted{color:var(--muted)}
+.btn{background:#1b264b;border:1px solid #2a3670;border-radius:8px;color:#e8efff;padding:10px 12px;text-decoration:none;cursor:pointer}
+.primary{background:linear-gradient(135deg,#ffd400,#ffb100);color:#232323;border:none}
+.danger{background:#3a2030;border:1px solid #6b2a3a}
+.table{width:100%;border-collapse:collapse}.table th,.table td{border-bottom:1px solid #1a2450;padding:8px}
+.row{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.total{font-size:18px;font-weight:800;color:var(--accent)}
+.auth,.checkout,.admin-form{display:grid;gap:10px}.auth input,.checkout input,.admin-form input,.admin-form textarea{padding:10px;border-radius:8px;border:1px solid #2a3670;background:#0f1735;color:#cfe3ff}
+.filters{display:flex;gap:8px;margin:10px 0}.filters select{padding:8px;border-radius:8px;border:1px solid #2a3670;background:#0f1735;color:#cfe3ff}
+.footer{border-top:1px solid #1a2450;margin-top:16px}

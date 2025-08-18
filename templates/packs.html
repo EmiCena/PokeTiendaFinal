@@ -1,0 +1,76 @@
+﻿{% extends "base.html" %}
+{% block title %}Packs diarios Â· PokeShop{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='packs.css') }}">
+<script defer src="{{ url_for('static', filename='packs.js') }}"></script>
+
+<h1>Packs</h1>
+{% if opened_set %}
+  <div class="pack-stage reveal">
+    <div class="cards">
+      {% for c in cards %}
+      <div class="card3d" style="transition-delay: {{ (loop.index0 * 80)|int }}ms;"></div>
+        <div class="face front"></div>
+        <div class="face back">
+          <img src="{{ c.image_url or url_for('static', filename='no-card.png') }}" alt="{{ c.name }}">
+          <div class="meta">{{ c.name }}</div>
+          <div class="muted">{{ c.tcg_card_id }} Â· {{ c.rarity or '-' }}</div>
+          {% if c.duplicate %}<div class="dup">Duplicado â˜…</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% if dup_points and dup_points>0 %}
+    <p class="muted">Puntos estrella obtenidos: <b>{{ dup_points }}</b></p>
+  {% endif %}
+  <p>
+  <a class="btn" href="{{ url_for('packs_bp.packs_home') }}">Volver</a>
+
+  {% if current_user.is_authenticated and current_user.is_admin %}
+  <form method="post"
+        action="{{ url_for('packs_bp.packs_open') }}"
+        class="open-pack-form"
+        style="display:inline-block; margin-left:8px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="set" value="{{ opened_set }}">
+    <button class="btn primary">Abrir otro</button>
+  </form>
+  {% endif %}
+  </p>
+  <p><a class="btn" href="{{ url_for('packs_bp.packs_home') }}">Volver</a></p>
+{% else %}
+  <p class="muted">Abre 1 pack diario por set. TambiÃ©n puedes usar tus bonus tokens acumulados por compras.</p>
+  <div class="grid">
+    {% for s in sets %}
+    <div class="card">
+      <div class="thumb">
+        {% if s.image %}
+          <img src="{{ s.image }}" alt="{{ s.set_name }}">
+        {% else %}
+          <div class="ph">SIN IMAGEN</div>
+        {% endif %}
+      </div>
+      <div class="title">{{ s.set_name }}</div>
+      <div class="muted">{{ s.set_code|upper }}</div>
+      <div class="badges">
+        {% if s.daily %}<span class="badge glow">Diario disponible</span>{% else %}<span class="badge">Usado hoy</span>{% endif %}
+        <span class="badge">Bonus: {{ s.bonus }}</span>
+      </div>
+      <form method="post" action="{{ url_for('packs_bp.packs_open') }}" class="open-pack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="set" value="{{ s.set_code }}">
+        <button class="btn" {% if not s.daily and s.bonus==0 %}disabled{% endif %}>Abrir pack</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="pack-stage preopen" id="preopen">
+     <div class="packbox pulse">
+       <div class="shine"></div>
+       <div class="label">Abriendo sobre...</div>
+     </div>
+  </div>
+{% endif %}
+{% endblock %}

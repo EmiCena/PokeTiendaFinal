@@ -1,0 +1,22 @@
+﻿{% extends "base.html" %}
+{% block title %}Mis pedidos Â· PokeShop{% endblock %}
+{% block content %}
+<h1>Mis pedidos</h1>
+{% if orders %}
+  <ul>
+  {% for o in orders %}
+    <li>
+      <b>#{{ o.id }}</b> â€” {{ o.created_at.strftime("%Y-%m-%d %H:%M") }} â€”
+      Total: $ {{ "%.2f"|format(o.total) }} â€” Estado: {{ o.status }}
+      <ul>
+        {% for it in o.items %}
+          <li>{{ it.product_name }} Ã— {{ it.quantity }} â€” $ {{ "%.2f"|format(it.unit_price * it.quantity) }}</li>
+        {% endfor %}
+      </ul>
+    </li>
+  {% endfor %}
+  </ul>
+{% else %}
+  <p class="muted">AÃºn no tienes pedidos.</p>
+{% endif %}
+{% endblock %}

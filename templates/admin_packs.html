@@ -1,0 +1,49 @@
+﻿{% extends "base.html" %}
+{% block title %}Admin Â· Packs{% endblock %}
+{% block content %}
+<h1>Admin Â· Packs</h1>
+
+<form method="post" class="admin-form" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" value="save_rule">
+
+  <label>Set code <input name="set_code" placeholder="sv1" required></label>
+  <label>TamaÃ±o de pack <input type="number" name="pack_size" value="10" min="1"></label>
+  <label>Odds JSON <input name="weights_json" value='{"Common":0.7,"Uncommon":0.25,"Rare":0.05}'></label>
+  <label>God chance <input name="god_chance" value="0.001"></label>
+  <label>Habilitado <input type="checkbox" name="enabled" checked></label>
+
+  <label>Imagen del set (URL) <input name="set_image_url" placeholder="https://..."></label>
+  <label>Imagen del set (archivo) <input type="file" name="set_image_file" accept=".png,.jpg,.jpeg,.gif,.webp"></label>
+
+  <button class="btn primary">Guardar regla</button>
+</form>
+
+<table class="table" style="margin-top:10px">
+  <tr><th>Set</th><th>Pack</th><th>Imagen</th><th>Odds</th><th>God</th><th>Enabled</th></tr>
+  {% for r in rules %}
+    <tr>
+      <td>{{ r.set_code|upper }}</td>
+      <td>{{ r.pack_size }}</td>
+      <td>
+        {% if r.set_image_url %}
+          <img src="{{ r.set_image_url }}" alt="{{ r.set_code }}" style="width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #2a3670;">
+        {% else %}<span class="muted">â€”</span>{% endif %}
+      </td>
+      <td><code>{{ r.weights_json }}</code></td>
+      <td>{{ r.god_chance }}</td>
+      <td>{{ "SÃ­" if r.enabled else "No" }}</td>
+    </tr>
+  {% endfor %}
+</table>
+
+<h3>Otorgar bonus tokens</h3>
+<form method="post" class="admin-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" value="grant_bonus">
+  <label>User ID <input name="user_id" type="number" min="1" required></label>
+  <label>Set code <input name="grant_set_code" placeholder="sv1" required></label>
+  <label>Tokens <input name="tokens" type="number" min="1" required></label>
+  <button class="btn">Otorgar</button>
+</form>
+{% endblock %}

@@ -1,0 +1,14 @@
+﻿{% extends "base.html" %}
+{% block title %}Pedido #{{ order.id }} Â· PokeShop{% endblock %}
+{% block content %}
+<h1>Â¡Gracias por tu compra!</h1>
+<p>Pedido #{{ order.id }} â€” Total pagado: $ {{ "%.2f"|format(order.total) }}</p>
+<p>Enviado a: {{ order.ship_name }} â€” {{ order.ship_address }}</p>
+<h3>Items</h3>
+<ul>
+  {% for it in order.items %}
+    <li>{{ it.product_name }} Ã— {{ it.quantity }} â€” $ {{ "%.2f"|format(it.unit_price * it.quantity) }}</li>
+  {% endfor %}
+</ul>
+<a class="btn" href="{{ url_for('index') }}">Volver a la tienda</a>
+{% endblock %}

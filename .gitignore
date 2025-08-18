@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -205,3 +206,35 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+=======
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Entorno
+.venv/
+venv/
+.env
+.env.*
+
+# Flask / SQLite / Archivos locales
+instance/
+store.db
+store.backup*.db
+backups/
+logs/
+*.log
+
+# Uploads (mantén el dir vacío con .gitkeep)
+uploads/*
+!uploads/.gitkeep
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+>>>>>>> 2db88ba (Inicial: tienda + packs + admin + IA básica)

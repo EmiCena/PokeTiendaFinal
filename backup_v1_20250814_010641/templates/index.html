@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Catálogo · PokeShop{% endblock %}
+{% block content %}
+<h1>Catálogo</h1>
+<form class="filters" action="{{ url_for('index') }}">
+  <input type="hidden" name="q" value="{{ q }}">
+  <select name="tipo">
+    <option value="">Tipo (todos)</option>
+    {% for t in ['fuego','agua','eléctrico','planta','hielo','roca','dragón'] %}
+      <option value="{{t}}" {% if tipo==t %}selected{% endif %}>{{t|capitalize}}</option>
+    {% endfor %}
+  </select>
+  <button>Filtrar</button>
+</form>
+<div class="grid">
+  {% for p in products %}
+  <a class="card" href="{{ url_for('product_detail', pid=p.id) }}">
+    <img src="{{ p.image_url or url_for('static', filename='noimg.png') }}" alt="{{ p.nombre }}">
+    <div class="title">{{ p.nombre }}</div>
+    <div class="muted">Tipo: {{ p.tipo|capitalize }}</div>
+    <div class="price">$ {{ "%.2f"|format(p.precio_base) }}</div>
+    <div class="muted">Stock: {{ p.stock }}</div>
+  </a>
+  {% else %}
+  <p>No hay productos.</p>
+  {% endfor %}
+</div>
+{% endblock %}

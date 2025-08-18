@@ -1,0 +1,69 @@
+﻿{% extends "base.html" %}
+{% block title %}CatÃ¡logo Â· PokeShop{% endblock %}
+{% block content %}
+<h1>CatÃ¡logo</h1>
+
+<form class="filters" action="{{ url_for('index') }}">
+  <input type="hidden" name="q" value="{{ q }}">
+  <select name="tipo">
+    <option value="">Tipo (todos)</option>
+    {% for t in ['fuego','agua','elÃ©ctrico','planta','hielo','roca','dragÃ³n','psÃ­quico','siniestro','lucha','acero','incoloro'] %}
+      <option value="{{t}}" {% if tipo==t %}selected{% endif %}>{{t|capitalize}}</option>
+    {% endfor %}
+  </select>
+  <select name="cat">
+    <option value="">CategorÃ­a (todas)</option>
+    <option value="tcg" {% if cat=='tcg' %}selected{% endif %}>TCG</option>
+    <option value="general" {% if cat=='general' %}selected{% endif %}>General/Merch</option>
+  </select>
+  <select name="sort">
+    <option value="new" {% if sort=='new' %}selected{% endif %}>Novedades</option>
+    <option value="price_asc" {% if sort=='price_asc' %}selected{% endif %}>Precio â†‘</option>
+    <option value="price_desc" {% if sort=='price_desc' %}selected{% endif %}>Precio â†“</option>
+  </select>
+  <button>Aplicar</button>
+</form>
+
+{% if featured_tcg %}
+  <h3 style="margin:8px 0">Cartas TCG destacadas</h3>
+  <div class="grid">
+    {% for p in featured_tcg %}
+      <a class="card" href="{{ url_for('product_detail', pid=p.id) }}">
+        <img src="{{ p.image_url or url_for('static', filename='noimg.png') }}" alt="{{ p.nombre }}">
+        <div class="title">{{ p.nombre }}</div>
+        <div class="muted">Tipo: {{ p.tipo|capitalize }} Â· <b>TCG</b></div>
+        <div class="price">$ {{ "%.2f"|format(p.precio_base) }}</div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<h3 style="margin:8px 0">Todos los productos</h3>
+<div class="grid">
+  {% for p in products %}
+  <a class="card" href="{{ url_for('product_detail', pid=p.id) }}">
+    <img src="{{ p.image_url or url_for('static', filename='noimg.png') }}" alt="{{ p.nombre }}">
+    <div class="title">{{ p.nombre }}</div>
+    <div class="muted">Tipo: {{ p.tipo|capitalize }} Â· {{ p.categoria|capitalize }}</div>
+    <div class="price">$ {{ "%.2f"|format(p.precio_base) }}</div>
+    <div class="muted">Stock: {{ p.stock }}</div>
+  </a>
+  {% else %}
+  <p>No hay productos.</p>
+  {% endfor %}
+</div>
+
+{% if pag and pag.pages>1 %}
+<nav class="row" style="margin-top:10px">
+  <div>PÃ¡gina {{ pag.page }} de {{ pag.pages }}</div>
+  <div>
+    {% if pag.has_prev %}
+      <a class="btn" href="{{ url_for('index', q=q, tipo=tipo, cat=cat, sort=sort, page=pag.prev_num) }}">â† Anterior</a>
+    {% endif %}
+    {% if pag.has_next %}
+      <a class="btn" href="{{ url_for('index', q=q, tipo=tipo, cat=cat, sort=sort, page=pag.next_num) }}">Siguiente â†’</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+﻿{% extends "base.html" %}
+{% block title %}ColecciÃ³n Â· {{ set_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='packs.css') }}">
+
+<h1>ColecciÃ³n Â· {{ set_name }}</h1>
+{% if set_image %}
+  <div class="thumb" style="max-width:420px;margin:8px 0;">
+    <img src="{{ set_image }}" alt="{{ set_name }}">
+  </div>
+{% endif %}
+<p class="muted">Progreso: <b>{{ owned }}/{{ total }}</b> ({{ pct }}%)</p>
+<div class="progress"><div class="bar" style="width: {{ pct }}%"></div></div>
+
+<div class="grid" style="margin-top:12px">
+  {% for c in cards %}
+  <div class="card" style="position:relative">
+    <div class="thumb">
+      {% if c.image_url %}
+        <img src="{{ c.image_url }}" alt="{{ c.name }}">
+      {% else %}
+        <div class="ph">SIN IMAGEN</div>
+      {% endif %}
+    </div>
+    <div class="title" style="font-size:14px">{{ c.name }}</div>
+    <div class="muted">{{ c.tcg_card_id }} Â· {{ c.rarity or "-" }}</div>
+    {% if c.owned %}
+      <div class="badge glow">En colecciÃ³n</div>
+      {% if c.duplicates > 0 %}
+      <div class="muted">Duplicados: {{ c.duplicates }}</div>
+      <form method="post" action="{{ url_for('packs_bp.burn_duplicates') }}" style="margin-top:6px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="tcg_card_id" value="{{ c.tcg_card_id }}">
+        <input type="hidden" name="set_code" value="{{ set_code }}">
+        <button class="btn">Fundir duplicados</button>
+      </form>
+      {% endif %}
+    {% else %}
+      <div class="badge">Falta</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<p style="margin-top:12px">
+  <a class="btn" href="{{ url_for('packs_bp.packs_home') }}">Volver a packs</a>
+</p>
+{% endblock %}

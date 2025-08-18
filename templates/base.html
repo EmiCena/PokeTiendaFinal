@@ -1,0 +1,89 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  
+  <!-- v9 SEO -->
+  <meta name="description" content="PokeShop: peluches, figuras y cartas TCG con b&uacute;squeda inteligente.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PokeShop">
+  <meta property="og:description" content="PokeShop: peluches, figuras y cartas TCG con b&uacute;squeda inteligente.">
+  <meta property="og:url" content="/">
+  <meta property="og:image" content="{{ url_for('static', filename='favicon.svg') }}">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml"><meta charset="utf-8" />
+  <title>{% block title %}PokeShop{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="{{ url_for('index') }}">PokeShop</a>
+    <form class="search" action="{{ url_for('index') }}">
+      <input name="q" placeholder="Buscar..." value="{{ request.args.get('q','') }}">
+      <button>Buscar</button>
+    </form>
+    <nav>
+      <a href="{{ url_for('cart_view') }}">Carrito</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('wishlist_view') }}">Favoritos</a>
+        <a href="{{ url_for('history_view') }}">Historial</a>
+        <a href="{{ url_for('orders_list') }}">Mis pedidos</a>
+        <a href="{{ url_for('profile') }}">Perfil</a>
+        <a href="{{ url_for('ai_search') }}">AI B&uacute;squeda</a>
+        <a href="{{ url_for('ai_ask') }}">AI Asistente</a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin_products') }}">Admin</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}">Salir</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Entrar</a>
+        <a href="{{ url_for('register') }}">Registrarse</a>
+      {% endif %}
+     <button id="themeToggle" class="btn" type="button" title="Cambiar tema">ðŸŒ™</button> <a href="{{ url_for('packs_bp.packs_home') }}">Packs</a> <a href="{{ url_for('packs_bp.collection') }}">Colecci&oacute;n</a></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash">
+        {% for cat, msg in messages %}
+          <div class="flash-item {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>© {{ 2025 }} PokeShop (demo)</span>
+  </div>
+</footer>
+<script>
+(function(){
+  const root = document.documentElement;
+  const key='theme';
+  function apply(t){ root.setAttribute('data-theme', t); try{localStorage.setItem(key,t);}catch(e){} }
+  const pref = (function(){
+    try{ return localStorage.getItem(key); }catch(e){ return null; }
+  })() || (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  apply(pref);
+  const btn = document.getElementById('themeToggle');
+  if(btn){
+    btn.textContent = (pref==="light") ? "â˜€ï¸" : "ðŸŒ™";
+    btn.addEventListener('click', function(){
+      const t = root.getAttribute('data-theme')==="light" ? "dark" : "light";
+      apply(t);
+      btn.textContent = (t==="light") ? "â˜€ï¸" : "ðŸŒ™";
+    });
+  }
+})();
+</script>
+
+</html>
+
+
+

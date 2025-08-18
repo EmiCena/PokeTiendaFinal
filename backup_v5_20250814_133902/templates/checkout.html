@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Checkout · PokeShop{% endblock %}
+{% block content %}
+<h1>Checkout</h1>
+<form method="post" class="checkout">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Nombre completo <input name="name" required></label>
+  <label>Dirección <input name="address" required></label>
+  <label>Cupón (opcional) <input name="coupon" placeholder="PIKA10"></label>
+  <h3>Resumen</h3>
+  <ul>
+    {% for it in items %}
+      <li>{{ it.product.nombre }} × {{ it.qty }} — $ {{ "%.2f"|format(it.unit_price * it.qty) }}</li>
+    {% endfor %}
+  </ul>
+  <div class="total">Total: <b>$ {{ "%.2f"|format(total) }}</b></div>
+  <button class="btn primary">Pagar (demo)</button>
+</form>
+{% endblock %}

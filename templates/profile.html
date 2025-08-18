@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil &middot; PokeShop{% endblock %}
+{% block content %}
+<h1>Mi perfil</h1>
+<form method="post" class="auth">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Nombre completo
+    <input name="full_name" value="{{ current_user.full_name or '' }}">
+  </label>
+  <label>Dirección de envío
+    <input name="ship_address" value="{{ current_user.ship_address or '' }}">
+  </label>
+  <label>Tipos favoritos (coma separada)
+    <input name="favoritos" placeholder="fuego,agua" value="{{ (current_user.get_favoritos() | join(', ')) if current_user.get_favoritos() else '' }}">
+  </label>
+  <button class="btn primary">Guardar</button>
+</form>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}AI Asistente{% endblock %}
+{% block content %}
+<h1>AI Asistente</h1>
+
+<form method="post" action="{{ url_for('ai_ask') }}" class="admin-form" style="margin:8px 0">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input name="q" value="{{ q or '' }}" placeholder="Escribe tu pregunta..." style="min-width:320px">
+  <button class="btn">Preguntar</button>
+</form>
+
+{% if answer %}
+  <div class="card" style="padding:12px">
+    <div class="title">Respuesta</div>
+    <p>{{ answer }}</p>
+  </div>
+{% elif q %}
+  <p class="muted">Sin respuesta por ahora.</p>
+{% endif %}
+
+{% if hits and hits|length > 0 %}
+  <h3 style="margin-top:12px">Referencias</h3>
+  <div class="grid">
+    {% for h in hits %}
+      <div class="card">
+        {% if h.image_url %}<img src="{{ h.image_url }}" alt="" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid #2a3670;margin-bottom:8px">{% endif %}
+        <div class="title">{{ h.title or h.nombre or ('ID ' ~ (h.id or '')) }}</div>
+        {% if h.snippet %}<div class="muted">{{ h.snippet }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,19 @@
+﻿{% extends "base.html" %}
+{% block title %}Mi colecciÃ³n Â· PokeShop{% endblock %}
+{% block content %}
+<h1>Mi colecciÃ³n</h1>
+<p class="muted">Puntos estrella: <b>{{ star_points }}</b></p>
+<div class="grid">
+  {% for s in sets %}
+  <div class="card">
+    <div class="title">{{ s.set_name }}</div>
+    <div class="muted">{{ s.set_code|upper }}</div>
+    <div class="muted">Progreso: <b>{{ s.owned }}/{{ s.total }}</b></div>
+    {% set pct = (s.owned*100//s.total) if s.total>0 else 0 %}
+    <div class="progress"><div class="bar" style="width:{{ pct }}%"></div></div>
+    <div class="badge">{{ pct }}%</div>
+    <p style="margin-top:8px"><a class="btn" href="{{ url_for('packs_bp.collection_set', set_code=s.set_code) }}">Ver cartas</a></p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ p.nombre }} · PokeShop{% endblock %}
+{% block content %}
+<div class="product">
+  <img class="photo" src="{{ p.image_url }}" alt="{{ p.nombre }}">
+  <div class="info">
+    <h1>{{ p.nombre }}</h1>
+    <div class="muted">Tipo: {{ p.tipo|capitalize }} · Stock: {{ p.stock }}</div>
+
+    {% if avg_rating %}
+      <div class="stars">Valoración: 
+        <span class="starline">{% for i in range(1,6) %}{{ "★" if i <= avg_rating|round(0, 'floor') else "☆" }}{% endfor %}</span>
+        <span class="muted">({{ avg_rating }}/5, {{ reviews|length }} reseñas)</span>
+      </div>
+    {% else %}
+      <div class="muted">Aún no hay reseñas</div>
+    {% endif %}
+
+    <p>{{ p.descripcion }}</p>
+    <div class="price">Precio para ti: <b>$ {{ "%.2f"|format(precio) }}</b></div>
+
+    <form action="{{ url_for('cart_add', pid=p.id) }}" method="post" style="display:inline-block">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="number" name="qty" min="1" max="99" value="1">
+      <button class="btn">Añadir al carrito</button>
+    </form>
+
+    {% if current_user.is_authenticated %}
+      {% if in_wishlist %}
+        <form action="{{ url_for('wishlist_remove', pid=p.id) }}" method="post" style="display:inline-block">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn danger">Quitar &#x2764;&#xFE0F;</button>
+        </form>
+      {% else %}
+        <form action="{{ url_for('wishlist_add', pid=p.id) }}" method="post" style="display:inline-block">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn">Guardar &#x2764;&#xFE0F;</button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    <details style="margin-top:8px">
+      <summary>¿Cómo se calculó el precio?</summary>
+      <ul>
+        {% for r in razones %}<li>{{ r }}</li>{% endfor %}
+      </ul>
+      <code>{{ feats }}</code>
+    </details>
+
+    <hr style="margin:14px 0; border-color:#1a2450">
+
+    <h3>Reseñas</h3>
+    {% if current_user.is_authenticated %}
+      <form method="post" action="{{ url_for('post_review', pid=p.id) }}" class="auth">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Puntuación
+          <select name="rating">
+            {% for i in range(1,6) %}
+              <option value="{{i}}" {% if my_review and my_review.rating==i %}selected{% endif %}>{{i}}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Comentario
+          <textarea name="comment" rows="3" placeholder="¿Qué te pareció?">{{ my_review.comment if my_review else "" }}</textarea>
+        </label>
+        <button class="btn primary">Enviar reseña</button>
+      </form>
+    {% else %}
+      <p class="muted">Inicia sesión para dejar tu reseña.</p>
+    {% endif %}
+
+    <ul>
+      {% for r in reviews %}
+        <li>
+          <b>
+            {% for _ in range(r.rating) %}★{% endfor %} {# ★ #}
+            {% for _ in range(5 - r.rating) %}☆{% endfor %} {# ☆ #}
+          </b>
+          — {{ r.comment or "Sin comentario" }} 
+          <span class="muted">· {{ r.created_at.strftime("%Y-%m-%d") }}</span>
+          {% if r.user_id in purchasers %}<span class="chip">✔ Comprador verificado</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+{% if recs %}
+  <h3 style="margin-top:14px">También te puede gustar</h3>
+  <div class="grid">
+    {% for r in recs %}
+    <a class="card" href="{{ url_for('product_detail', pid=r.id) }}">
+      <img src="{{ r.image_url }}" alt="{{ r.nombre }}">
+      <div class="title">{{ r.nombre }}</div>
+      <div class="muted">Tipo: {{ r.tipo|capitalize }}</div>
+      <div class="price">$ {{ "%.2f"|format(r.precio_base) }}</div>
+    </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}
