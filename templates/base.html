@@ -1,89 +1,115 @@
 ﻿<!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
-  
-  <!-- v9 SEO -->
-  <meta name="description" content="PokeShop: peluches, figuras y cartas TCG con b&uacute;squeda inteligente.">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="PokeShop">
-  <meta property="og:description" content="PokeShop: peluches, figuras y cartas TCG con b&uacute;squeda inteligente.">
-  <meta property="og:url" content="/">
-  <meta property="og:image" content="{{ url_for('static', filename='favicon.svg') }}">
-  <meta name="twitter:card" content="summary">
-  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml"><meta charset="utf-8" />
-  <title>{% block title %}PokeShop{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}PokeTienda{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand:{DEFAULT:"#60a5fa","2":"#7dd3fc"}, accent:"#22c55e" } } } }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  {% block head %}{% endblock %}
 </head>
-<body>
-<header class="topbar">
-  <div class="wrap">
-    <a class="brand" href="{{ url_for('index') }}">PokeShop</a>
-    <form class="search" action="{{ url_for('index') }}">
-      <input name="q" placeholder="Buscar..." value="{{ request.args.get('q','') }}">
-      <button>Buscar</button>
-    </form>
-    <nav>
-      <a href="{{ url_for('cart_view') }}">Carrito</a>
-      {% if current_user.is_authenticated %}
-        <a href="{{ url_for('wishlist_view') }}">Favoritos</a>
-        <a href="{{ url_for('history_view') }}">Historial</a>
-        <a href="{{ url_for('orders_list') }}">Mis pedidos</a>
-        <a href="{{ url_for('profile') }}">Perfil</a>
-        <a href="{{ url_for('ai_search') }}">AI B&uacute;squeda</a>
-        <a href="{{ url_for('ai_ask') }}">AI Asistente</a>
-        {% if current_user.is_admin %}
-          <a href="{{ url_for('admin_products') }}">Admin</a>
-        {% endif %}
-        <a href="{{ url_for('logout') }}">Salir</a>
-      {% else %}
-        <a href="{{ url_for('login') }}">Entrar</a>
-        <a href="{{ url_for('register') }}">Registrarse</a>
-      {% endif %}
-     <button id="themeToggle" class="btn" type="button" title="Cambiar tema">ðŸŒ™</button> <a href="{{ url_for('packs_bp.packs_home') }}">Packs</a> <a href="{{ url_for('packs_bp.collection') }}">Colecci&oacute;n</a></nav>
-  </div>
-</header>
-
-<main class="wrap">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="flash">
-        {% for cat, msg in messages %}
-          <div class="flash-item {{ cat }}">{{ msg }}</div>
-        {% endfor %}
+<body class="min-h-screen bg-base-200 text-base-content">
+  <header class="sticky top-0 z-50 backdrop-blur bg-base-100/70 border-b border-base-300">
+    <div class="navbar container mx-auto px-4">
+      <div class="flex-1">
+        <a href="{{ url_for('index') }}" class="btn btn-ghost normal-case text-xl font-extrabold">
+          <span class="w-6 h-6 rounded-md bg-gradient-to-br from-brand to-brand-2 grid place-items-center mr-2">â˜…</span>
+          PokeTienda
+        </a>
       </div>
-    {% endif %}
-  {% endwith %}
-  {% block content %}{% endblock %}
-</main>
+      <div class="flex-none gap-2">
+        <ul class="menu menu-horizontal px-1">
+          <li><a href="{{ url_for('index') }}">CatÃ¡logo</a></li>
+          {% if 'packs_bp' in current_app.blueprints %}
+            <li><a href="{{ url_for('packs_bp.packs_home') }}">Packs</a></li>
+            <li><a href="{{ url_for('packs_bp.collection') }}">ColecciÃ³n</a></li>
+          {% endif %}
+          <li><a href="{{ url_for('ai_search') }}">AI BÃºsqueda</a></li>
+          <li><a href="{{ url_for('ai_ask') }}">AI Asistente</a></li>
+        </ul>
 
-<footer class="footer">
-  <div class="wrap">
-    <span>© {{ 2025 }} PokeShop (demo)</span>
+        <button id="themeToggle" class="btn btn-ghost btn-square" title="Cambiar tema">
+          <iconify-icon icon="line-md:sunny-outline-to-moon-alt-loop-transition"></iconify-icon>
+        </button>
+
+        {% if current_user.is_authenticated %}
+          <div class="dropdown dropdown-end">
+            <label tabindex="0" class="btn btn-ghost avatar placeholder">
+              <div class="bg-neutral text-neutral-content w-8 rounded-full">
+                <span>{{ (current_user.email or 'U')[:1]|upper }}</span>
+              </div>
+            </label>
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+              <li><a href="{{ url_for('profile') }}">Perfil</a></li>
+              <li><a href="{{ url_for('orders_list') }}">Mis pedidos</a></li>
+              <li><a href="{{ url_for('cart_view') }}">Carrito</a></li>
+              {% if getattr(current_user,'is_admin',False) %}
+                <li><a href="{{ url_for('admin_products') }}">Admin productos</a></li>
+                {% if 'packs_bp' in current_app.blueprints %}
+                <li><a href="{{ url_for('packs_bp.admin_packs') }}">Admin packs</a></li>
+                {% endif %}
+              {% endif %}
+              <li><a href="{{ url_for('logout') }}">Salir</a></li>
+            </ul>
+          </div>
+        {% else %}
+          <a class="btn btn-outline" href="{{ url_for('login') }}">Entrar</a>
+          <a class="btn btn-primary" href="{{ url_for('register') }}">Registro</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="container mx-auto px-4 py-6 border-t border-base-300 text-sm text-base-content/70">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>Â© PokeTienda</div>
+      <nav class="flex gap-3">
+        <a class="link link-hover" href="{{ url_for('index') }}">Inicio</a>
+        <a class="link link-hover" href="{{ url_for('ai_health') }}">Estado IA</a>
+      </nav>
+    </div>
+  </footer>
+
+  <div class="toast toast-end">
+    {% with msgs = get_flashed_messages(with_categories=True) %}
+      {% if msgs %}
+        {% for cat, msg in msgs %}
+          <div class="alert {{ 'alert-success' if cat=='success' else 'alert-info' if cat=='info' else 'alert-warning' if cat=='warning' else 'alert-error' }}">
+            <span>{{ msg }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
   </div>
-</footer>
-<script>
-(function(){
-  const root = document.documentElement;
-  const key='theme';
-  function apply(t){ root.setAttribute('data-theme', t); try{localStorage.setItem(key,t);}catch(e){} }
-  const pref = (function(){
-    try{ return localStorage.getItem(key); }catch(e){ return null; }
-  })() || (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-  apply(pref);
-  const btn = document.getElementById('themeToggle');
-  if(btn){
-    btn.textContent = (pref==="light") ? "â˜€ï¸" : "ðŸŒ™";
-    btn.addEventListener('click', function(){
-      const t = root.getAttribute('data-theme')==="light" ? "dark" : "light";
-      apply(t);
-      btn.textContent = (t==="light") ? "â˜€ï¸" : "ðŸŒ™";
-    });
-  }
-})();
-</script>
 
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const saved = localStorage.getItem("theme");
+      if (saved) root.setAttribute("data-theme", saved);
+      const btn = document.getElementById("themeToggle");
+      btn && btn.addEventListener("click", () => {
+        const cur = root.getAttribute("data-theme") || "dark";
+        const next = cur === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+      });
+      setTimeout(() => {
+        document.querySelectorAll('.toast .alert').forEach(el=>{
+          el.classList.add('opacity-0','transition','duration-300');
+          setTimeout(()=>el.remove(),300);
+        })
+      }, 3500);
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
 </html>
-
-
-

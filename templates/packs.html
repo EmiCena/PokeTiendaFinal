@@ -1,76 +1,91 @@
 ﻿{% extends "base.html" %}
-{% block title %}Packs diarios Â· PokeShop{% endblock %}
-{% block content %}
+{% block title %}Packs Â· PokeTienda{% endblock %}
+{% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='packs.css') }}">
-<script defer src="{{ url_for('static', filename='packs.js') }}"></script>
+{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-extrabold mb-3">Packs</h1>
 
-<h1>Packs</h1>
 {% if opened_set %}
-  <div class="pack-stage reveal">
-    <div class="cards">
+  <div class="mb-3">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-5 lg:grid-cols-5">
       {% for c in cards %}
-      <div class="card3d" style="transition-delay: {{ (loop.index0 * 80)|int }}ms;"></div>
-        <div class="face front"></div>
-        <div class="face back">
-          <img src="{{ c.image_url or url_for('static', filename='no-card.png') }}" alt="{{ c.name }}">
-          <div class="meta">{{ c.name }}</div>
-          <div class="muted">{{ c.tcg_card_id }} Â· {{ c.rarity or '-' }}</div>
-          {% if c.duplicate %}<div class="dup">Duplicado â˜…</div>{% endif %}
+      <div class="card bg-base-100 border border-base-300" style="transition-delay: {{ (loop.index0 * 80)|int }}ms;">
+        <div class="card3d">
+          <div class="face front"></div>
+          <div class="face back">
+            <img src="{{ c.image_url or url_for('static', filename='no-card.png') }}" alt="{{ c.name }}">
+            <div class="meta">{{ c.name }}</div>
+            <div class="muted">{{ c.tcg_card_id }} Â· {{ c.rarity or '-' }}</div>
+            {% if c.duplicate %}<div class="dup">Duplicado â˜…</div>{% endif %}
+          </div>
         </div>
       </div>
       {% endfor %}
     </div>
-  </div>
-  {% if dup_points and dup_points>0 %}
-    <p class="muted">Puntos estrella obtenidos: <b>{{ dup_points }}</b></p>
-  {% endif %}
-  <p>
-  <a class="btn" href="{{ url_for('packs_bp.packs_home') }}">Volver</a>
-
-  {% if current_user.is_authenticated and current_user.is_admin %}
-  <form method="post"
-        action="{{ url_for('packs_bp.packs_open') }}"
-        class="open-pack-form"
-        style="display:inline-block; margin-left:8px">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="set" value="{{ opened_set }}">
-    <button class="btn primary">Abrir otro</button>
-  </form>
-  {% endif %}
-  </p>
-  <p><a class="btn" href="{{ url_for('packs_bp.packs_home') }}">Volver</a></p>
-{% else %}
-  <p class="muted">Abre 1 pack diario por set. TambiÃ©n puedes usar tus bonus tokens acumulados por compras.</p>
-  <div class="grid">
-    {% for s in sets %}
-    <div class="card">
-      <div class="thumb">
-        {% if s.image %}
-          <img src="{{ s.image }}" alt="{{ s.set_name }}">
-        {% else %}
-          <div class="ph">SIN IMAGEN</div>
-        {% endif %}
-      </div>
-      <div class="title">{{ s.set_name }}</div>
-      <div class="muted">{{ s.set_code|upper }}</div>
-      <div class="badges">
-        {% if s.daily %}<span class="badge glow">Diario disponible</span>{% else %}<span class="badge">Usado hoy</span>{% endif %}
-        <span class="badge">Bonus: {{ s.bonus }}</span>
-      </div>
+    {% if dup_points and dup_points>0 %}
+      <div class="alert alert-info mt-3"><span>Puntos estrella obtenidos: <b>{{ dup_points }}</b></span></div>
+    {% endif %}
+    <div class="mt-4 flex gap-2">
+      <a class="btn" href="{{ url_for('packs_bp.packs_home') }}">Volver</a>
+      {% if current_user.is_authenticated and current_user.is_admin %}
       <form method="post" action="{{ url_for('packs_bp.packs_open') }}" class="open-pack-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="set" value="{{ s.set_code }}">
-        <button class="btn" {% if not s.daily and s.bonus==0 %}disabled{% endif %}>Abrir pack</button>
+        <input type="hidden" name="set" value="{{ opened_set }}">
+        <button class="btn btn-primary">Abrir otro</button>
       </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if current_user.is_authenticated and current_user.is_admin %}
+  <div class="hidden" id="preopen">
+     <div class="packbox pulse"><div class="shine"></div><div class="label">Abriendo sobre...</div></div>
+  </div>
+  {% endif %}
+
+{% else %}
+  <p class="opacity-70 mb-3">Abre 1 pack diario por set. TambiÃ©n puedes usar tus bonus tokens acumulados por compras.</p>
+  {% if sets|length == 0 %}
+    <div class="alert alert-info">No hay sets disponibles.</div>
+  {% else %}
+  <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    {% for s in sets %}
+    <div class="card bg-base-100 border border-base-300">
+      <figure class="aspect-[4/3] bg-base-200">
+        {% if s.image %}<img src="{{ s.image }}" alt="{{ s.set_name }}" class="object-cover w-full h-full">{% endif %}
+      </figure>
+      <div class="card-body p-4">
+        <div class="card-title text-base">{{ s.set_name }}</div>
+        <div class="opacity-70">{{ s.set_code|upper }}</div>
+        <div class="flex gap-2 my-1">
+          {% if s.daily %}<div class="badge badge-success badge-outline">Diario disponible</div>
+          {% else %}<div class="badge">Usado hoy</div>{% endif %}
+          <div class="badge">Bonus: {{ s.bonus }}</div>
+        </div>
+        <form method="post" action="{{ url_for('packs_bp.packs_open') }}" class="open-pack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="set" value="{{ s.set_code }}">
+          <button class="btn btn-primary" {% if not s.daily and s.bonus==0 %}disabled{% endif %}>Abrir pack</button>
+        </form>
+      </div>
     </div>
     {% endfor %}
   </div>
 
-  <div class="pack-stage preopen" id="preopen">
-     <div class="packbox pulse">
-       <div class="shine"></div>
-       <div class="label">Abriendo sobre...</div>
-     </div>
+  <div class="hidden" id="preopen">
+     <div class="packbox pulse"><div class="shine"></div><div class="label">Abriendo sobre...</div></div>
   </div>
+  {% endif %}
 {% endif %}
+{% endblock %}
+{% block scripts %}
+<script defer src="{{ url_for('static', filename='packs.js') }}"></script>
+<script>
+  // AÃ±ade la clase reveal para animar al cargar resultado
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const stage = document.querySelector(".grid");
+    if(stage){ setTimeout(()=> document.body.classList.add("reveal"), 50); }
+  });
+</script>
 {% endblock %}
