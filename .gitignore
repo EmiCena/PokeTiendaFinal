@@ -222,7 +222,7 @@ venv/
 
 # Flask / SQLite / Archivos locales
 instance/
-store.db
+
 store.backup*.db
 backups/
 logs/

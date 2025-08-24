@@ -1,13 +1,16 @@
 ﻿{% extends "base.html" %}
-{% block title %}Packs Â· PokeTienda{% endblock %}
+
+{% block title %}Packs · PokeTienda{% endblock %}
+
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='packs.css') }}">
 {% endblock %}
+
 {% block content %}
 <h1 class="text-2xl font-extrabold mb-3">Packs</h1>
 
 {% if opened_set %}
-  <div class="mb-3">
+  <div class="mb-3" data-opened>
     <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-5 lg:grid-cols-5">
       {% for c in cards %}
       <div class="card bg-base-100 border border-base-300" style="transition-delay: {{ (loop.index0 * 80)|int }}ms;">
@@ -16,22 +19,26 @@
           <div class="face back">
             <img src="{{ c.image_url or url_for('static', filename='no-card.png') }}" alt="{{ c.name }}">
             <div class="meta">{{ c.name }}</div>
-            <div class="muted">{{ c.tcg_card_id }} Â· {{ c.rarity or '-' }}</div>
-            {% if c.duplicate %}<div class="dup">Duplicado â˜…</div>{% endif %}
+            <div class="muted">{{ c.tcg_card_id }} · {{ c.rarity or '-' }}</div>
+            {% if c.duplicate %}<div class="dup">Duplicado</div>{% endif %}
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
+
     {% if dup_points and dup_points>0 %}
       <div class="alert alert-info mt-3"><span>Puntos estrella obtenidos: <b>{{ dup_points }}</b></span></div>
     {% endif %}
+
     <div class="mt-4 flex gap-2">
       <a class="btn" href="{{ url_for('packs_bp.packs_home') }}">Volver</a>
+
       {% if current_user.is_authenticated and current_user.is_admin %}
       <form method="post" action="{{ url_for('packs_bp.packs_open') }}" class="open-pack-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="set" value="{{ opened_set }}">
+        <input type="hidden" name="again" value="1"> <!-- fuerza pack nuevo -->
         <button class="btn btn-primary">Abrir otro</button>
       </form>
       {% endif %}
@@ -45,7 +52,8 @@
   {% endif %}
 
 {% else %}
-  <p class="opacity-70 mb-3">Abre 1 pack diario por set. TambiÃ©n puedes usar tus bonus tokens acumulados por compras.</p>
+  <p class="opacity-70 mb-3">Abre 1 pack diario por set. También puedes usar tus bonus tokens acumulados por compras.</p>
+
   {% if sets|length == 0 %}
     <div class="alert alert-info">No hay sets disponibles.</div>
   {% else %}
@@ -79,13 +87,27 @@
   {% endif %}
 {% endif %}
 {% endblock %}
+
 {% block scripts %}
 <script defer src="{{ url_for('static', filename='packs.js') }}"></script>
 <script>
-  // AÃ±ade la clase reveal para animar al cargar resultado
+  // Animación de reveal al montar resultados
   document.addEventListener("DOMContentLoaded", ()=>{
     const stage = document.querySelector(".grid");
     if(stage){ setTimeout(()=> document.body.classList.add("reveal"), 50); }
+
+    // Evita caché y muestra preloader al abrir pack
+    document.querySelectorAll('.open-pack-form').forEach(f => {
+      f.addEventListener('submit', () => {
+        try {
+          const pre = document.getElementById('preopen');
+          if (pre) pre.classList.remove('hidden');
+          const url = new URL(f.action, window.location.origin);
+          url.searchParams.set('ts', Date.now()); // cache-buster
+          f.action = url.toString();
+        } catch(e) {}
+      });
+    });
   });
 </script>
 {% endblock %}

@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", ()=>{
+document.addEventListener("DOMContentLoaded", ()=>{
   const forms = document.querySelectorAll(".open-pack-form");
   const pre = document.getElementById("preopen");
   forms.forEach(f=>{
