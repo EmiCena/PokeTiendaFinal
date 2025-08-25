@@ -1,17 +1,17 @@
-PokeTienda — Tienda Pokémon + Chat IA (Groq)
+# PokeTienda — Tienda Pokémon + Chat IA (Groq)
 Tienda web hecha con Flask para explorar cartas y productos, abrir packs, gestionar carrito y lista de deseos, y chatear con un asistente IA que sugiere cartas relacionadas.
 
 Incluye una base de datos SQLite (store.db) lista para usar.
 
-Catálogo con filtros y buscador
-Detalle de producto con reseñas
-Carrito, checkout (simulado) y wishlist
-Packs (sobres) con apertura aleatoria
-Chat IA (Groq) que responde y sugiere cartas clicables
-Búsqueda semántica (si está configurado el servicio correspondiente)
-Nota: El generador de “mazos meta” está desactivado por simplicidad y límites de modelo. El chat IA se enfoca en responder y sugerir cartas.
+* Catálogo con filtros y buscador
+* Detalle de producto con reseñas
+* Carrito, checkout (simulado) y wishlist
+* Packs (sobres) con apertura aleatoria
+* Chat IA (Groq) que responde y sugiere cartas clicables
+* Búsqueda semántica (si está configurado el servicio correspondiente)
+* Nota: El generador de “mazos meta” está desactivado por simplicidad y límites de modelo. El chat IA se enfoca en responder y sugerir cartas.
 
-Requisitos
+# Requisitos
 Python 3.10 o superior (recomendado 3.11)
 Git
 (Opcional) Clave de API de Groq para activar el chat IA: https://console.groq.com/
@@ -159,36 +159,4 @@ Crea la carpeta services con init.py vacío y groq_service.py dentro.
 /ai/groq/health devuelve ok:false:
 
 Configura GROQ_API_KEY en el mismo terminal donde ejecutas “python app.py”.
-Cambios sin commitear al hacer git rebase/push:
 
-Haz commit (git add -A; git commit -m "WIP") o usa git stash push -u; luego rebase/push.
-La DB cambia siempre y ensucia el repo:
-
-Una vez comiteada, puedes “ignorar” cambios locales:
-text
-
-git update-index --skip-worktree store.db
-Para volver a trackear:
-text
-
-git update-index --no-skip-worktree store.db
-Contribuir
-Crea una rama desde main:
-text
-
-git switch -c feat/tu-feature
-Commit y push:
-text
-
-git add -A
-git commit -m "feat: tu-feature"
-git push -u origin feat/tu-feature
-Abre un Pull Request.
-Consejos:
-
-No subas API keys ni contraseñas.
-Si incluyes store.db, procura que pese menos de 100 MB. Si no, usa Git LFS.
-Licencia
-Elige la licencia que prefieras (por ejemplo MIT). Si no defines una, por defecto el proyecto no tiene licencia pública.
-
-—
