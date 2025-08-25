@@ -4,12 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}PokeTienda{% endblock %}</title>
+
+  <!-- Tailwind + DaisyUI por CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = { theme: { extend: { colors: { brand:{DEFAULT:"#60a5fa","2":"#7dd3fc"}, accent:"#22c55e" } } } }
+    tailwind.config = {
+      theme: { extend: { colors: { brand:{DEFAULT:"#60a5fa","2":"#7dd3fc"}, accent:"#22c55e" } } }
+    }
   </script>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" />
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+
   {% block head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-base-200 text-base-content">
@@ -17,24 +22,39 @@
     <div class="navbar container mx-auto px-4">
       <div class="flex-1">
         <a href="{{ url_for('index') }}" class="btn btn-ghost normal-case text-xl font-extrabold">
-          <span class="w-6 h-6 rounded-md bg-gradient-to-br from-brand to-brand-2 grid place-items-center mr-2">â˜…</span>
+          <span class="w-6 h-6 rounded-md bg-gradient-to-br from-brand to-brand-2 grid place-items-center mr-2">★</span>
           PokeTienda
         </a>
       </div>
       <div class="flex-none gap-2">
         <ul class="menu menu-horizontal px-1">
-          <li><a href="{{ url_for('index') }}">CatÃ¡logo</a></li>
-          {% if 'packs_bp' in current_app.blueprints %}
+          <li><a href="{{ url_for('index') }}">Catálogo</a></li>
+          {% if has_packs %}
             <li><a href="{{ url_for('packs_bp.packs_home') }}">Packs</a></li>
-            <li><a href="{{ url_for('packs_bp.collection') }}">ColecciÃ³n</a></li>
+            <li><a href="{{ url_for('packs_bp.collection') }}">Colección</a></li>
           {% endif %}
-          <li><a href="{{ url_for('ai_search') }}">AI BÃºsqueda</a></li>
-          <li><a href="{{ url_for('ai_ask') }}">AI Asistente</a></li>
+          {% if has_endpoint('ai_chat') %}
+            <li><a href="{{ url_for('ai_chat') }}">AI Chat</a></li>
+          {% endif %}
+          {% if has_endpoint('ai_search') %}<li><a href="{{ url_for('ai_search') }}">AI Búsqueda</a></li>{% endif %}
+          {% if has_endpoint('ai_ask') %}<li><a href="{{ url_for('ai_ask') }}">AI Asistente</a></li>{% endif %}
         </ul>
 
+        <!-- Botón de tema -->
         <button id="themeToggle" class="btn btn-ghost btn-square" title="Cambiar tema">
           <iconify-icon icon="line-md:sunny-outline-to-moon-alt-loop-transition"></iconify-icon>
         </button>
+
+        <!-- Botón Carrito (siempre visible) -->
+        <a href="{{ url_for('cart') }}" class="btn btn-ghost btn-square relative" title="Carrito">
+          <iconify-icon icon="mdi:cart"></iconify-icon>
+          {% set qty = cart_qty|default(0) %}
+          {% if qty > 0 %}
+            <span class="badge badge-primary absolute -top-1 -right-1 text-[10px] p-1">
+              {{  '99+' if qty > 99 else qty }}
+            </span>
+          {% endif %}
+        </a>
 
         {% if current_user.is_authenticated %}
           <div class="dropdown dropdown-end">
@@ -44,21 +64,19 @@
               </div>
             </label>
             <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-              <li><a href="{{ url_for('profile') }}">Perfil</a></li>
-              <li><a href="{{ url_for('orders_list') }}">Mis pedidos</a></li>
-              <li><a href="{{ url_for('cart_view') }}">Carrito</a></li>
-              {% if getattr(current_user,'is_admin',False) %}
-                <li><a href="{{ url_for('admin_products') }}">Admin productos</a></li>
-                {% if 'packs_bp' in current_app.blueprints %}
-                <li><a href="{{ url_for('packs_bp.admin_packs') }}">Admin packs</a></li>
-                {% endif %}
+              {% if has_endpoint('profile') %}<li><a href="{{ url_for('profile') }}">Perfil</a></li>{% endif %}
+              {% if has_endpoint('orders_list') %}<li><a href="{{ url_for('orders_list') }}">Mis pedidos</a></li>{% endif %}
+              {% if has_endpoint('cart') %}<li><a href="{{ url_for('cart') }}">Carrito</a></li>{% endif %}
+              {% if current_user.is_authenticated and (current_user.is_admin is defined and current_user.is_admin) %}
+                {% if has_endpoint('admin_products') %}<li><a href="{{ url_for('admin_products') }}">Admin productos</a></li>{% endif %}
+                {% if has_packs %}<li><a href="{{ url_for('packs_bp.admin_packs') }}">Admin packs</a></li>{% endif %}
               {% endif %}
               <li><a href="{{ url_for('logout') }}">Salir</a></li>
             </ul>
           </div>
         {% else %}
-          <a class="btn btn-outline" href="{{ url_for('login') }}">Entrar</a>
-          <a class="btn btn-primary" href="{{ url_for('register') }}">Registro</a>
+          {% if has_endpoint('login') %}<a class="btn btn-outline" href="{{ url_for('login') }}">Entrar</a>{% endif %}
+          {% if has_endpoint('register') %}<a class="btn btn-primary" href="{{ url_for('register') }}">Registro</a>{% endif %}
         {% endif %}
       </div>
     </div>
@@ -70,10 +88,10 @@
 
   <footer class="container mx-auto px-4 py-6 border-t border-base-300 text-sm text-base-content/70">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>Â© PokeTienda</div>
+      <div>© PokeTienda</div>
       <nav class="flex gap-3">
         <a class="link link-hover" href="{{ url_for('index') }}">Inicio</a>
-        <a class="link link-hover" href="{{ url_for('ai_health') }}">Estado IA</a>
+        {% if has_endpoint('ai_health') %}<a class="link link-hover" href="{{ url_for('ai_health') }}">Estado IA</a>{% endif %}
       </nav>
     </div>
   </footer>
@@ -110,6 +128,7 @@
       }, 3500);
     })();
   </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

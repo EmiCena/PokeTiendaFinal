@@ -6,6 +6,18 @@ import json
 
 db = SQLAlchemy()
 
+class UserCard(db.Model):
+    __tablename__ = "user_cards"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False, index=True)
+    product_id = db.Column(db.Integer, nullable=False, index=True)
+    qty = db.Column(db.Integer, nullable=False, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "product_id", name="uq_user_product"),
+    )
+
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)

@@ -1,19 +1,26 @@
 ﻿{% extends "base.html" %}
-{% block title %}CatÃ¡logo Â· PokeTienda{% endblock %}
+{% block title %}Cat&aacute;logo &middot; PokeTienda{% endblock %}
 {% block content %}
 
 <section class="hero bg-gradient-to-br from-base-200 to-base-100 border border-base-300 rounded-2xl p-6 mb-6">
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div>
-      <div class="badge badge-outline">CatÃ¡logo</div>
+      <div class="badge badge-outline">Cat&aacute;logo</div>
       <h1 class="text-2xl font-extrabold mt-2">Descubre peluches, figuras y cartas TCG</h1>
-      <p class="opacity-70">Con precios dinÃ¡micos, packs con animaciÃ³n y bÃºsqueda inteligente.</p>
+      <p class="opacity-70">Con precios din&aacute;micos, packs con animaci&oacute;n y b&uacute;squeda inteligente.</p>
     </div>
     <div class="flex gap-2">
-      {% if 'packs_bp' in current_app.blueprints %}
-        <a class="btn btn-primary" href="{{ url_for('packs_bp.packs_home') }}"><iconify-icon icon="mdi:cards-outline"></iconify-icon> Abrir packs</a>
+      {% if has_packs %}
+        <a class="btn btn-primary" href="{{ url_for('packs_bp.packs_home') }}">
+          <iconify-icon icon="mdi:cards-outline"></iconify-icon> Abrir packs
+        </a>
       {% endif %}
-      <a class="btn btn-outline" href="{{ url_for('ai_search') }}"><iconify-icon icon="mdi:magnify"></iconify-icon> AI BÃºsqueda</a>
+      <a class="btn btn-outline" href="{{ url_for('ai_search') }}">
+        <iconify-icon icon="mdi:magnify"></iconify-icon> AI B&uacute;squeda
+      </a>
+      <a class="btn btn-outline" href="{{ url_for('cart') }}">
+        <iconify-icon icon="mdi:cart"></iconify-icon> Ver carrito
+      </a>
     </div>
   </div>
 </section>
@@ -29,7 +36,7 @@
     </select>
   </div>
   <div>
-    <label class="label"><span class="label-text">CategorÃ­a</span></label>
+    <label class="label"><span class="label-text">Categor&iacute;a</span></label>
     <select name="cat" class="select select-bordered">
       <option value="">(todas)</option>
       <option value="tcg" {{ 'selected' if cat=='tcg' else '' }}>TCG</option>
@@ -40,10 +47,50 @@
     <label class="label"><span class="label-text">Orden</span></label>
     <select name="sort" class="select select-bordered">
       <option value="new" {{ 'selected' if sort=='new' else '' }}>Novedades</option>
-      <option value="price_asc" {{ 'selected' if sort=='price_asc' else '' }}>Precio â†‘</option>
-      <option value="price_desc" {{ 'selected' if sort=='price_desc' else '' }}>Precio â†“</option>
+      <option value="price_asc" {{ 'selected' if sort=='price_asc' else '' }}>Precio ↑</option>
+      <option value="price_desc" {{ 'selected' if sort=='price_desc' else '' }}>Precio ↓</option>
     </select>
   </div>
+
+  {% if cat == 'tcg' %}
+  <div>
+    <label class="label"><span class="label-text">Expansi&oacute;n</span></label>
+    <select name="exp" class="select select-bordered">
+      <option value="">(todas)</option>
+      {% for v in facets.exp %}
+        <option value="{{ v }}" {{ 'selected' if v == exp else '' }}>{{ v }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label"><span class="label-text">Rareza</span></label>
+    <select name="rare" class="select select-bordered">
+      <option value="">(todas)</option>
+      {% for v in facets.rare %}
+        <option value="{{ v }}" {{ 'selected' if v == rare else '' }}>{{ v }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label"><span class="label-text">Idioma</span></label>
+    <select name="lang" class="select select-bordered">
+      <option value="">(todos)</option>
+      {% for v in facets.lang %}
+        <option value="{{ v }}" {{ 'selected' if v == lang else '' }}>{{ v }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label"><span class="label-text">Condici&oacute;n</span></label>
+    <select name="cond" class="select select-bordered">
+      <option value="">(todas)</option>
+      {% for v in facets.cond %}
+        <option value="{{ v }}" {{ 'selected' if v == cond else '' }}>{{ v }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
   <div class="grow">
     <label class="label"><span class="label-text">Buscar</span></label>
     <input name="q" value="{{ q }}" placeholder="Pikachu, sv1-001, peluche..." class="input input-bordered w-full">
@@ -61,24 +108,48 @@
     {% for p in products %}
       <div class="card bg-base-100 shadow-sm border border-base-300">
         <figure class="aspect-[4/3] bg-base-200">
-          {% if p.image_url %}<img src="{{ p.image_url }}" alt="{{ p.nombre }}" class="object-cover w-full h-full">
-          {% else %}<div class="skeleton w-full h-full"></div>{% endif %}
+          {% if p.image_url %}
+            <img src="{{ p.image_url }}" alt="{{ p.nombre }}" class="object-cover w-full h-full">
+          {% else %}
+            <div class="skeleton w-full h-full"></div>
+          {% endif %}
         </figure>
         <div class="card-body p-4">
           <h2 class="card-title text-base">{{ p.nombre }}</h2>
-          <p class="opacity-70 text-sm">{{ p.tipo }} Â· {{ p.categoria }}</p>
+          <p class="opacity-70 text-sm">{{ p.tipo }} &middot; {{ p.categoria }}</p>
           <div class="flex flex-wrap gap-2 my-1">
             {% if p.rarity %}<div class="badge badge-outline">{{ p.rarity }}</div>{% endif %}
             {% if p.expansion %}<div class="badge badge-outline">{{ p.expansion }}</div>{% endif %}
           </div>
+
+          {% set cp = computed_prices.get(p.id) %}
           <div class="card-actions justify-between items-center mt-2">
-            <div class="font-extrabold">${{ "%.2f"|format(p.precio_base) }}</div>
+            <div class="font-extrabold">
+              {% if cp %}
+                {% if cp.using_market %}
+                  {{ '%.2f'|format(cp.price) }} {{ cp.currency or 'USD' }}
+                {% else %}
+                  ${{ '%.2f'|format(cp.price) }}
+                {% endif %}
+              {% else %}
+                ${{ '%.2f'|format(p.precio_base) }}
+              {% endif %}
+            </div>
             <a class="btn btn-sm" href="{{ url_for('product_detail', pid=p.id) }}">Ver</a>
           </div>
+
+          {% if cp and cp.using_market %}
+            <div class="text-xs opacity-70">
+              Mercado ({{ cp.source or 'market' }}): {{ '%.2f'|format(cp.price) }} {{ cp.currency }}
+            </div>
+          {% endif %}
+
           <form class="mt-2" method="post" action="{{ url_for('cart_add', pid=p.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="qty" value="1">
-            <button class="btn btn-primary btn-block btn-sm"><iconify-icon icon="mdi:cart"></iconify-icon> AÃ±adir</button>
+            <button class="btn btn-primary btn-block btn-sm">
+              <iconify-icon icon="mdi:cart"></iconify-icon> A&ntilde;adir
+            </button>
           </form>
         </div>
       </div>
@@ -86,15 +157,20 @@
   </div>
 
   {% if pag and (pag.pages or 0) > 1 %}
-  <div class="join mt-6 justify-center flex">
-    {% if pag.has_prev %}
-      <a class="join-item btn" href="{{ url_for('index', q=q, tipo=tipo, cat=cat, sort=sort, page=pag.prev_num) }}">Â«</a>
-    {% else %}<button class="join-item btn" disabled>Â«</button>{% endif %}
-    <button class="join-item btn">PÃ¡gina {{ pag.page }} / {{ pag.pages }}</button>
-    {% if pag.has_next %}
-      <a class="join-item btn" href="{{ url_for('index', q=q, tipo=tipo, cat=cat, sort=sort, page=pag.next_num) }}">Â»</a>
-    {% else %}<button class="join-item btn" disabled>Â»</button>{% endif %}
-  </div>
+    <div class="join mt-6 justify-center flex">
+      {% if pag.has_prev %}
+        <a class="join-item btn" href="{{ url_for('index', q=q, tipo=tipo, cat=cat, sort=sort, exp=exp, rare=rare, lang=lang, cond=cond, page=pag.prev_num) }}">«</a>
+      {% else %}
+        <button class="join-item btn" disabled>«</button>
+      {% endif %}
+      <button class="join-item btn">P&aacute;gina {{ pag.page }} / {{ pag.pages }}</button>
+      {% if pag.has_next %}
+        <a class="join-item btn" href="{{ url_for('index', q=q, tipo=tipo, cat=cat, sort=sort, exp=exp, rare=rare, lang=lang, cond=cond, page=pag.next_num) }}">»</a>
+      {% else %}
+        <button class="join-item btn" disabled>»</button>
+      {% endif %}
+    </div>
   {% endif %}
 {% endif %}
+
 {% endblock %}
