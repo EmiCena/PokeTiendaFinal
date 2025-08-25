@@ -33,6 +33,9 @@
             <li><a href="{{ url_for('packs_bp.packs_home') }}">Packs</a></li>
             <li><a href="{{ url_for('packs_bp.collection') }}">Colección</a></li>
           {% endif %}
+          {% if has_endpoint('ai_chat') %}
+            <li><a href="{{ url_for('ai_chat') }}">AI Chat</a></li>
+          {% endif %}
           {% if has_endpoint('ai_search') %}<li><a href="{{ url_for('ai_search') }}">AI Búsqueda</a></li>{% endif %}
           {% if has_endpoint('ai_ask') %}<li><a href="{{ url_for('ai_ask') }}">AI Asistente</a></li>{% endif %}
         </ul>
