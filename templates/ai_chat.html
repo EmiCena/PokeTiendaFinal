@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Chat IA · PokeTienda{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-extrabold mb-4">Asistente con IA</h1>
+
+<!-- Historial del chat -->
+<div id="chat-scroll" class="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
+  {% for m in messages %}
+    {% if m.role == 'user' %}
+      <!-- Mensaje del usuario -->
+      <div class="flex justify-end px-1">
+        <div class="max-w-[80%] bg-primary text-primary-content rounded-2xl px-4 py-3 shadow">
+          <div class="whitespace-pre-wrap">{{ m.text }}</div>
+        </div>
+      </div>
+    {% else %}
+      <!-- Mensaje del asistente -->
+      <div class="flex justify-start px-1">
+        <div class="w-full max-w-[80%] bg-base-200 rounded-2xl px-4 py-3 shadow">
+          {% if m.text %}
+            <div class="mb-2 whitespace-pre-wrap">{{ m.text }}</div>
+          {% endif %}
+
+          {# Sugerencias de productos (si las hay) #}
+          {% if m.products and m.products|length > 0 %}
+            <div class="mt-3">
+              <div class="text-sm font-semibold mb-2">Sugerencias relacionadas</div>
+              <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+                {% for p in m.products %}
+                  <a class="block border border-base-300 rounded overflow-hidden hover:shadow transition" href="{{ url_for('product_detail', pid=p.id) }}">
+                    <figure class="aspect-[3/4] bg-base-300">
+                      {% if p.image_url %}
+                        <img src="{{ p.image_url }}" alt="{{ p.nombre or p.name }}" loading="lazy" class="object-cover w-full h-full">
+                      {% endif %}
+                    </figure>
+                    <div class="p-2 text-sm">
+                      <div class="font-medium truncate">{{ p.nombre or p.name }}</div>
+                      <div class="opacity-70 text-xs truncate">{{ p.tcg_card_id or p.card_number or '-' }} · {{ p.rarity or '-' }}</div>
+                    </div>
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Render de mazo (si existe) #}
+          {% if m.deck %}
+            {% set deck_items = (m.deck['items'] if 'items' in m.deck else []) %}
+          {% else %}
+            {% set deck_items = [] %}
+          {% endif %}
+
+          {% if deck_items and deck_items|length > 0 %}
+            {% set pokemon  = deck_items | selectattr('category','equalto','pokemon') | list %}
+            {% set trainers = deck_items | selectattr('category','equalto','trainer') | list %}
+            {% set energy   = deck_items | selectattr('category','equalto','energy') | list %}
+
+            {% set ns = namespace(total=0) %}
+            {% for it in deck_items %}
+              {% set ns.total = ns.total + (it.qty or 0) %}
+            {% endfor %}
+
+            <div class="mt-3">
+              <div class="text-sm opacity-70">
+                Formato: {{ m.deck.format or 'Standard' }} · Arquetipo: {{ m.deck.archetype or 'Custom' }} · Cartas: {{ ns.total }}
+              </div>
+              {% if m.deck.strategy %}
+                <div class="text-sm mt-1">{{ m.deck.strategy }}</div>
+              {% endif %}
+            </div>
+
+            <div class="mt-3 grid gap-4 grid-cols-1 md:grid-cols-3">
+              <div>
+                <div class="font-semibold mb-1">Pokémon</div>
+                <ul class="text-sm space-y-1">
+                  {% for it in pokemon %}
+                    <li>
+                      {% if it.product %}
+                        <a class="link" href="{{ url_for('product_detail', pid=it.product.id) }}">{{ it.name }}</a>
+                      {% else %}
+                        {{ it.name }}
+                      {% endif %}
+                      × {{ it.qty }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <div class="font-semibold mb-1">Trainers</div>
+                <ul class="text-sm space-y-1">
+                  {% for it in trainers %}
+                    <li>
+                      {% if it.product %}
+                        <a class="link" href="{{ url_for('product_detail', pid=it.product.id) }}">{{ it.name }}</a>
+                      {% else %}
+                        {{ it.name }}
+                      {% endif %}
+                      × {{ it.qty }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <div>
+                <div class="font-semibold mb-1">Energías</div>
+                <ul class="text-sm space-y-1">
+                  {% for it in energy %}
+                    <li>
+                      {% if it.product %}
+                        <a class="link" href="{{ url_for('product_detail', pid=it.product.id) }}">{{ it.name }}</a>
+                      {% else %}
+                        {{ it.name }}
+                      {% endif %}
+                      × {{ it.qty }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+
+            {% if m.deck['warnings'] %}
+              <div class="mt-2 text-xs opacity-70">
+                {% for w in m.deck['warnings'] %}<div>• {{ w }}</div>{% endfor %}
+              </div>
+            {% endif %}
+            {% if m.deck['invalid'] and m.deck['invalid']|length > 0 %}
+              <div class="mt-2 text-xs opacity-70">
+                Se ignoraron {{ m.deck['invalid']|length }} nombres no válidos (no existen en el catálogo): {{ m.deck['invalid']|join(', ') }}
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<!-- Input del chat -->
+<form method="post" action="{{ url_for('ai_chat_send') }}" class="mt-6">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="mode" id="chat-mode" value="">
+  <div class="flex gap-2">
+    <input name="q" class="input input-bordered flex-1" autocomplete="off"
+           placeholder="Escribe tu mensaje... (ej. 'Muéstrame cartas de Charizard', 'Genérame un mazo meta de Lost Box')">
+    <button class="btn btn-primary" type="submit"
+            onclick="document.getElementById('chat-mode').value=''">Enviar</button>
+    <button class="btn" type="submit"
+            onclick="document.getElementById('chat-mode').value='deck'">Generar mazo meta</button>
+    <button class="btn btn-outline" formaction="{{ url_for('ai_chat_reset') }}" formmethod="post">Reiniciar</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Auto-scroll al final del chat al cargar
+  document.addEventListener("DOMContentLoaded", () => {
+    const el = document.getElementById("chat-scroll");
+    if (el) el.scrollTop = el.scrollHeight;
+  });
+</script>
+{% endblock %}

@@ -23,7 +23,7 @@ except Exception:
             raise ValueError("Invalid email")
 
 from flask_wtf.csrf import CSRFProtect, generate_csrf
-from sqlalchemy import func, text
+from sqlalchemy import func, text, or_
 from werkzeug.utils import secure_filename
 
 from models import (
@@ -40,13 +40,7 @@ except Exception:
             base = float(getattr(p, "precio_base", 0.0) or 0.0)
             return base, [], {}
 
-# Mailer opcional - currently not implemented
-# try:
-#     from services.mail_service import Mailer
-# except Exception:
-#     Mailer = None
-
-# AI opcional
+# AI opcional (búsqueda semántica / RAG)
 try:
     from ai.search_service import semantic_search
 except Exception:
@@ -59,6 +53,16 @@ except Exception:
     def answer_question(q, k=5):
         return None, []
 
+# Groq opcional
+_groq_import_error = None
+try:
+    from services.groq_service import groq_chat, GROQ_MODEL
+except Exception as ex:
+    GROQ_MODEL = None
+    _groq_import_error = f"{type(ex).__name__}: {ex}"
+    def groq_chat(_messages, **kwargs):
+        raise RuntimeError(f"Groq no disponible: {_groq_import_error}")
+
 ALLOWED_EXTS = {"png", "jpg", "jpeg", "gif", "webp"}
 csrf = CSRFProtect()
 
@@ -69,8 +73,6 @@ def allowed_file(filename: str) -> bool:
 
 def create_app():
     app = Flask(__name__)
-    # WARNING: In production, ensure SECRET_KEY is set via environment variable
-    # and is a strong, randomly generated string. 'dev-secret' is for development only.
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 
     # DB absoluta
@@ -84,7 +86,6 @@ def create_app():
 
     db.init_app(app)
     csrf.init_app(app)
-    # mailer = Mailer() if Mailer else None  # Commented out - mail service not implemented
 
     @app.after_request
     def ensure_utf8(resp):
@@ -185,7 +186,6 @@ def create_app():
     def cart_items_with_products():
         out = []
         if current_user.is_authenticated:
-            # Optimized query for authenticated users
             rows = (
                 db.session.query(CartItem, PokemonProducto)
                 .join(PokemonProducto, PokemonProducto.id == CartItem.product_id)
@@ -197,15 +197,12 @@ def create_app():
                 out.append({"product": p, "qty": ci.quantity, "unit_price": precio})
             return out
         else:
-            # Optimized query for session cart (anonymous users)
             cart = session.get("cart", {})
             if not cart:
                 return []
-
             pids = [int(pid) for pid in cart.keys()]
             products = PokemonProducto.query.filter(PokemonProducto.id.in_(pids)).all()
             products_map = {p.id: p for p in products}
-
             for pid_str, qty_str in cart.items():
                 pid = int(pid_str)
                 qty = int(qty_str)
@@ -238,7 +235,7 @@ def create_app():
             return []
 
     _tcg_facets_cache = {"data": None, "timestamp": None}
-    _TCG_FACETS_CACHE_TTL_SECONDS = 3600 # Cache for 1 hour
+    _TCG_FACETS_CACHE_TTL_SECONDS = 3600
 
     def tcg_facets():
         now = datetime.utcnow()
@@ -276,7 +273,7 @@ def create_app():
     def uploaded_file(filename):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
-    # ---------- Auth: logout
+    # ---------- Auth: logout/login/register
     @app.route("/login", methods=["GET", "POST"], endpoint="login")
     def login():
         if current_user.is_authenticated:
@@ -344,7 +341,7 @@ def create_app():
 
     # ---------- Carrito
     @app.get("/cart", endpoint="cart")
-    @app.get("/cart/view", endpoint="cart_view")  # alias por compatibilidad
+    @app.get("/cart/view", endpoint="cart_view")
     def cart_page():
         items = cart_items_with_products()
         total = round(sum(float(i["unit_price"]) * int(i["qty"]) for i in items), 2)
@@ -376,19 +373,16 @@ def create_app():
         for k, v in request.form.items():
             if k.startswith("qty_"):
                 try:
-                    pid = int(k.split("_", 1)[1])
-                    qty = int(v)
+                    pid = int(k.split("_", 1)[1]); qty = int(v)
                 except Exception:
                     continue
                 updates[pid] = max(0, min(99, qty))
 
         if not updates:
-            pids = request.form.getlist("pid")
-            qtys = request.form.getlist("qty")
+            pids = request.form.getlist("pid"); qtys = request.form.getlist("qty")
             for pid_str, qty_str in zip(pids, qtys):
                 try:
-                    pid = int(pid_str)
-                    qty = int(qty_str)
+                    pid = int(pid_str); qty = int(qty_str)
                 except Exception:
                     continue
                 updates[pid] = max(0, min(99, qty))
@@ -473,7 +467,7 @@ def create_app():
                 # Decrementar stock
                 prod.stock -= qty
                 if prod.stock < 0:
-                    prod.stock = 0 # Evitar stock negativo en caso de race condition, aunque ya se verificó antes
+                    prod.stock = 0
 
                 product_name = (
                     getattr(prod, "nombre", None)
@@ -561,7 +555,8 @@ def create_app():
             flash("No estaba en favoritos.", "info")
         return redirect(request.referrer or url_for("product_detail", pid=pid))
 
-    # ---------- AI endpoints
+    # ---------- IA endpoints
+
     @app.get("/ai/search")
     def ai_search():
         q = (request.args.get("q") or "").strip()
@@ -582,16 +577,12 @@ def create_app():
             for r in results:
                 try:
                     if isinstance(r, PokemonProducto):
-                        products.append(r)
-                        continue
+                        products.append(r); continue
                     if isinstance(r, int):
-                        ids.append(r)
-                        continue
+                        ids.append(r); continue
                     if isinstance(r, dict):
-                        if "id" in r:
-                            ids.append(int(r["id"]))
-                        elif "product_id" in r:
-                            ids.append(int(r["product_id"]))
+                        if "id" in r: ids.append(int(r["id"]))
+                        elif "product_id" in r: ids.append(int(r["product_id"]))
                         continue
                     rid = getattr(r, "id", None)
                     if rid is not None:
@@ -609,38 +600,162 @@ def create_app():
         answer = None
         hits = []
         q = (request.form.get("q") or request.args.get("q") or "").strip()
+        provider = (request.values.get("provider") or ("groq" if os.getenv("GROQ_API_KEY") else "rag")).lower()
+
         if request.method == "POST" and q:
             try:
-                answer, hits = answer_question(q, k=5)
+                if provider == "groq" and os.getenv("GROQ_API_KEY"):
+                    msgs = [
+                        {"role": "system", "content": "Eres un asistente de una tienda Pokémon. Responde breve, útil y en español."},
+                        {"role": "user", "content": q}
+                    ]
+                    answer = groq_chat(msgs, temperature=0.3, max_tokens=400)
+                    if not answer:
+                        raise RuntimeError("Respuesta vacía de Groq")
+                else:
+                    try:
+                        answer, hits = answer_question(q, k=5)
+                        if not answer:
+                            answer = "No pude procesar la pregunta ahora."
+                    except Exception:
+                        answer, hits = ("No pude procesar la pregunta ahora.", [])
             except Exception as e:
-                app.logger.warning(f"ai_ask error: {e}")
-                answer, hits = "No pude procesar la pregunta en este momento.", []
-        return render_template("ai_assistant.html", q=q, answer=answer, hits=hits)
+                flask_current_app.logger.warning(f"ai_ask error: {e}")
+                answer, hits = (f"Error IA: {e}", [])
 
-    @app.get("/ai/health")
-    def ai_health():
-        import json
-        try:
-            import requests
-        except Exception:
-            return jsonify({"ok": False, "error": "requests no instalado"}), 400
+        return render_template("ai_assistant.html", q=q, answer=answer, hits=hits, provider=provider)
 
-        base = os.getenv("OPENAI_CHAT_BASE_URL", os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"))
-        model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
-        key = os.getenv("OPENAI_API_KEY")
+    @app.get("/ai/groq/health")
+    def ai_groq_health():
         try:
-            if not key:
-                return jsonify({"ok": False, "error": "OPENAI_API_KEY no seteada", "base": base, "model": model}), 400
-            r = requests.post(
-                f"{base}/chat/completions",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                data=json.dumps({"model": model, "messages": [{"role": "user", "content": "ping"}], "max_tokens": 4}),
-                timeout=10
-            )
-            ok = 200 <= r.status_code < 300
-            return jsonify({"ok": ok, "status": r.status_code, "base": base, "model": model, "raw": (r.text[:200] if not ok else "ok")}), (200 if ok else 502)
+            model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+            if not os.getenv("GROQ_API_KEY"):
+                return jsonify({"ok": False, "model": model, "error": "GROQ_API_KEY no seteada"}), 400
+            txt = groq_chat([{"role": "user", "content": "ping"}], max_tokens=4)
+            if not txt:
+                return jsonify({"ok": False, "model": model, "error": "Groq devolvió respuesta vacía"}), 502
+            return jsonify({"ok": True, "model": model, "reply": txt}), 200
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e), "base": base, "model": model}), 502
+            return jsonify({"ok": False, "model": os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"), "error": str(e)}), 502
+
+    # --------- Helpers Chat: solo sugerencia de productos ---------
+    def _search_products_for_text(q: str, limit: int = 8):
+        prods = []
+        # 1) semantic_search si está disponible
+        try:
+            results = semantic_search(q, k=limit, filters={"cat": "tcg", "tipo": "tcg"})
+        except Exception:
+            results = []
+        ids = []
+        for r in results:
+            try:
+                if isinstance(r, PokemonProducto):
+                    if r.categoria == "tcg": prods.append(r)
+                    continue
+                if isinstance(r, int):
+                    ids.append(int(r)); continue
+                if isinstance(r, dict):
+                    rid = r.get("id") or r.get("product_id")
+                    if rid: ids.append(int(rid)); continue
+                rid = getattr(r, "id", None)
+                if rid is not None: ids.append(int(rid))
+            except Exception:
+                pass
+        if ids:
+            ids = list({int(x) for x in ids})
+            found = PokemonProducto.query.filter(PokemonProducto.id.in_(ids)).all()
+            prods.extend([p for p in found if getattr(p, "categoria", None) == "tcg"])
+        # 2) FTS fallback
+        if len(prods) < limit and fts_available():
+            try:
+                fids = fts_match_ids(q, limit=limit*2)
+                if fids:
+                    more = PokemonProducto.query.filter(PokemonProducto.id.in_(fids)).all()
+                    for p in more:
+                        if p not in prods and p.categoria == "tcg":
+                            prods.append(p)
+            except Exception:
+                pass
+        # 3) LIKE fallback
+        if len(prods) < limit:
+            like = f"%{q}%"
+            more = (
+                PokemonProducto.query
+                .filter(
+                    PokemonProducto.categoria == "tcg",
+                    (PokemonProducto.nombre.ilike(like)) | (PokemonProducto.descripcion.ilike(like))
+                )
+                .limit(limit * 2)
+                .all()
+            )
+            for p in more:
+                if p not in prods:
+                    prods.append(p)
+        # Orden simple por fecha e imagen primero
+        prods = [p for p in prods if getattr(p, "image_url", None)]
+        prods = sorted(prods, key=lambda p: getattr(p, "created_at", datetime.min), reverse=True)
+        return prods[:limit]
+
+    # --------- Chat vistas (sin mazos) ---------
+    @app.get("/ai/chat")
+    def ai_chat():
+        msgs = session.get("ai_chat", [])
+        rendered = []
+        for m in msgs:
+            m2 = dict(m)
+            if m2.get("product_ids"):
+                ids = [int(x) for x in m2["product_ids"]]
+                prods = PokemonProducto.query.filter(PokemonProducto.id.in_(ids)).all()
+                mp = {p.id: p for p in prods}
+                m2["products"] = [mp[i] for i in ids if i in mp]
+            rendered.append(m2)
+        return render_template("ai_chat.html", messages=rendered)
+
+    @app.post("/ai/chat/send")
+    def ai_chat_send():
+        text = (request.form.get("q") or "").strip()
+        if not text:
+            return redirect(url_for("ai_chat"))
+
+        msgs = session.get("ai_chat", [])
+        msgs.append({"role": "user", "text": text})
+
+        assistant = {"role": "assistant", "text": None}
+
+        # Si piden “mazo/meta”, responde que esa función no está disponible
+        lower = text.lower()
+        if any(k in lower for k in ["mazo", "deck", "meta"]):
+            assistant["text"] = "Por ahora el generador de mazos está desactivado. Te dejo cartas relacionadas por si quieres explorar."
+        else:
+            # Respuesta general con IA (Groq si hay clave)
+            if os.getenv("GROQ_API_KEY"):
+                try:
+                    msgs_in = [
+                        {"role": "system", "content": "Eres un asistente de una tienda Pokémon. Sé claro y útil."},
+                        {"role": "user", "content": text}
+                    ]
+                    assistant["text"] = groq_chat(msgs_in, temperature=0.3, max_tokens=450) or "..."
+                except Exception as e:
+                    assistant["text"] = f"No pude responder con IA: {e}"
+            else:
+                assistant["text"] = "IA (Groq) no disponible."
+
+        # Sugerencias de productos siempre que sea posible
+        try:
+            prods = _search_products_for_text(text, limit=8)
+            assistant["product_ids"] = [int(p.id) for p in prods]
+        except Exception as e:
+            flask_current_app.logger.warning(f"product_suggest error: {e}")
+
+        msgs.append(assistant)
+        session["ai_chat"] = msgs[-20:]
+        return redirect(url_for("ai_chat"))
+
+    @app.post("/ai/chat/reset")
+    def ai_chat_reset():
+        session.pop("ai_chat", None)
+        flash("Chat reiniciado.", "info")
+        return redirect(url_for("ai_chat"))
 
     # ---------- Catálogo
     @app.route("/")
@@ -706,9 +821,6 @@ def create_app():
 
         computed_prices = {}
         user = current_user if current_user.is_authenticated else None
-        # Fetch all products for the current page to avoid N+1 queries for price calculation
-        # This assumes precio_service.calcular_precio can handle a list of products or is efficient enough.
-        # If precio_service.calcular_precio performs DB queries per product, it should be optimized too.
         for p in pag.items:
             try:
                 dyn_price, _, _ = precio_service.calcular_precio(p, user)
@@ -723,9 +835,7 @@ def create_app():
                 source = getattr(p, "market_source", None)
             else:
                 price_val = round(float(dyn_price), 2)
-                curr = "$"
-                using_market = False
-                source = None
+                curr = "$"; using_market = False; source = None
 
             computed_prices[p.id] = {
                 "price": price_val,
@@ -871,21 +981,20 @@ def create_app():
         ai_answer = None
         if q:
             try:
-                from ai.rag_assistant import OPENAI_API_KEY, OPENAI_CHAT_BASE_URL, openai_chat
-            except Exception:
-                OPENAI_API_KEY = None
-                OPENAI_CHAT_BASE_URL = None
-                def openai_chat(_): return None
-            try:
-                if OPENAI_API_KEY and OPENAI_CHAT_BASE_URL:
-                    context = f"Producto: {p.nombre}\nTipo: {p.tipo} | Categoría: {p.categoria}\nPrecio base: {p.precio_base:.2f}\nDescripción: {p.descripcion or ''}"
-                    msg = [
-                        {"role": "system", "content": "Eres un asistente de una tienda Pokémon. Responde breve y claro."},
-                        {"role": "user", "content": f"Pregunta: {q}\n\nContexto del producto:\n{context}\n\nResponde:"}
-                    ]
-                    ai_answer = openai_chat(msg)
+                context = (
+                    f"Producto: {getattr(p, 'nombre', '')}\n"
+                    f"Tipo: {getattr(p, 'tipo', '')} | Categoría: {getattr(p, 'categoria', '')}\n"
+                    f"Precio base: {float(getattr(p, 'precio_base', 0) or 0):.2f}\n"
+                    f"Descripción: {getattr(p, 'descripcion', '') or ''}"
+                )
+                msgs = [
+                    {"role": "system", "content": "Eres un asesor de una tienda Pokémon. Responde claro, breve y útil."},
+                    {"role": "user", "content": f"Pregunta: {q}\n\nContexto del producto:\n{context}\n\nResponde:"}
+                ]
+                if os.getenv("GROQ_API_KEY"):
+                    ai_answer = groq_chat(msgs, temperature=0.3, max_tokens=400) or "No obtuve respuesta de la IA."
                 else:
-                    ai_answer = "IA externa no disponible. Revisa la descripción y especificaciones del producto."
+                    ai_answer = "IA (Groq) no disponible. Revisa la descripción y especificaciones del producto."
             except Exception as e:
                 ai_answer = f"Error IA: {e}"
 
